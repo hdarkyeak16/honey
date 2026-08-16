@@ -6,8 +6,11 @@ const dots=document.querySelector('#slideDots');let currentSlide=0;
 if(slides.length&&dots){slides.forEach((_,i)=>{const d=document.createElement('button');d.className='slide-dot'+(i===0?' active':'');d.setAttribute('aria-label',`Go to slide ${i+1}`);d.onclick=()=>showSlide(i);dots.appendChild(d)});}
 function showSlide(i){if(!slides.length)return;currentSlide=(i+slides.length)%slides.length;slides.forEach((s,n)=>s.classList.toggle('active',n===currentSlide));document.querySelectorAll('.slide-dot').forEach((d,n)=>d.classList.toggle('active',n===currentSlide));const counter=document.querySelector('#slideCounter');if(counter)counter.textContent=`SLIDE ${currentSlide+1} / ${slides.length}`}
 document.querySelector('#prevSlide')?.addEventListener('click',()=>showSlide(currentSlide-1));document.querySelector('#nextSlide')?.addEventListener('click',()=>showSlide(currentSlide+1));
-addEventListener('keydown',e=>{if(['ArrowRight','PageDown'].includes(e.key))showSlide(currentSlide+1);if(['ArrowLeft','PageUp'].includes(e.key))showSlide(currentSlide-1);if(e.key==='Home')showSlide(0);if(e.key==='End')showSlide(slides.length-1)});
-document.querySelector('#fullscreenPresentation')?.addEventListener('click',async()=>{const el=document.querySelector('#presentation');if(!document.fullscreenElement)await el?.requestFullscreen?.();else await document.exitFullscreen?.()});showSlide(0);
+addEventListener('keydown',e=>{if(['ArrowRight','PageDown'].includes(e.key))showSlide(currentSlide+1);if(['ArrowLeft','PageUp'].includes(e.key))showSlide(currentSlide-1);if(e.key==='Home')showSlide(0);if(e.key==='End')showSlide(slides.length-1);if(e.key==='Escape'&&document.fullscreenElement)document.exitFullscreen()});
+const fullscreenButton=document.querySelector('#fullscreenPresentation');const presentation=document.querySelector('#presentation');
+fullscreenButton?.addEventListener('click',async()=>{try{if(!document.fullscreenElement){await presentation?.requestFullscreen?.();}else{await document.exitFullscreen?.()}}catch(error){console.warn('Fullscreen was blocked by the browser.',error)}});
+document.addEventListener('fullscreenchange',()=>{if(!fullscreenButton)return;fullscreenButton.textContent=document.fullscreenElement?'⛶ Exit Fullscreen':'⛶ Fullscreen';fullscreenButton.setAttribute('aria-label',document.fullscreenElement?'Exit fullscreen presentation':'Enter fullscreen presentation')});
+showSlide(0);
 
 // Three.js Honey game
 const canvas=document.querySelector('#gameCanvas');
