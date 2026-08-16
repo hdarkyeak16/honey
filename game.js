@@ -1,0 +1,25 @@
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.179.1/build/three.module.js';
+
+const canvas=document.querySelector('#gameCanvas');
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x9fdcff);
+const camera=new THREE.PerspectiveCamera(65,1,.1,100); camera.position.set(0,5,8);
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true}); renderer.shadowMap.enabled=true;
+const clock=new THREE.Clock();
+scene.add(new THREE.HemisphereLight(0xffffff,0x667755,2)); const sun=new THREE.DirectionalLight(0xffffff,2.5); sun.position.set(5,10,5); sun.castShadow=true; scene.add(sun);
+const world=new THREE.Group();scene.add(world);let kennel=false;
+function box(x,y,z,sx,sy,sz,color){const m=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),new THREE.MeshStandardMaterial({color}));m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;world.add(m);return m}
+function resetWorld(){while(world.children.length)world.remove(world.children[0]);
+ box(0,-.15,0,22,.3,18,kennel?0x8b8b8b:0x78ad59);
+ if(!kennel){box(0,1,-6,8,2,1,0xe7b77d);box(-3,2,-5.4,1.6,2.2,.8,0xf2d6a8);box(3,1.5,-5.5,2.2,1.2,1,0x7a4a28);box(6,.5,-1,1,1,1,0xe3a12e);box(-6,.5,1,1,1,1,0xd97b2e);for(let i=0;i<7;i++){let t=new THREE.Mesh(new THREE.SphereGeometry(.45),new THREE.MeshStandardMaterial({color:0xffffff}));t.position.set(-7+i*2,.45,-3+Math.sin(i)*2);t.castShadow=true;world.add(t)}}
+ else {box(0,1,-6,8,2,1,0x555555);box(-7,1,0,1,2,12,0x555555);box(7,1,0,1,2,12,0x555555);for(let x=-6;x<=6;x+=2){box(x,1,6,.15,2,.15,0x444444);box(x,1,-6,.15,2,.15,0x444444)}}}
+resetWorld();
+const honey=new THREE.Group();const body=new THREE.Mesh(new THREE.CapsuleGeometry(.65,1.1,8,16),new THREE.MeshStandardMaterial({color:0xc77b32}));body.rotation.z=Math.PI/2;body.castShadow=true;honey.add(body);const head=new THREE.Mesh(new THREE.SphereGeometry(.58,16,16),new THREE.MeshStandardMaterial({color:0xd79545}));head.position.set(.8,.15,0);head.castShadow=true;honey.add(head);const nose=new THREE.Mesh(new THREE.SphereGeometry(.16,12,12),new THREE.MeshStandardMaterial({color:0x222222}));nose.position.set(1.25,.1,0);honey.add(nose);for(const z of [-.4,.4]){const leg=new THREE.Mesh(new THREE.CylinderGeometry(.13,.16,.7),new THREE.MeshStandardMaterial({color:0x9d5b27}));leg.position.set(-.25,-.55,z);honey.add(leg)}honey.position.y=1;scene.add(honey);
+const keys={};addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.key.toLowerCase()==='e')interact()});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+let happiness=90,fun=85,family=100;const msg=document.querySelector('#gameText');
+function updateUI(){for(const [id,v] of [['happiness',happiness],['fun',fun],['family',family]]){document.querySelector('#'+id+'Value').textContent=v;document.querySelector('#'+id+'Bar').style.width=v+'%'}}
+function interact(){if(kennel){msg.textContent='Honey looks around her small space. There is not much to interact with here.';return}msg.textContent='Honey is having a great time with her family! ❤️';happiness=Math.min(100,happiness+4);fun=Math.min(100,fun+6);updateUI()}
+document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>{if(kennel){msg.textContent='In this scenario, Honey has fewer activities available.';return}const a=b.dataset.action;const texts={toy:'Honey plays with her favourite toy! 🎾',food:'Honey gets a tasty treat! 🦴',walk:'Honey goes for a walk outside! 🌳',cuddle:'Honey gets lots of cuddles! ❤️'};msg.textContent=texts[a];happiness=Math.min(100,happiness+4);fun=Math.min(100,fun+(a==='toy'||a==='walk'?8:2));family=Math.min(100,family+(a==='cuddle'?8:2));updateUI()});
+function setMode(k){kennel=k;document.querySelector('#homeMode').classList.toggle('active',!k);document.querySelector('#kennelMode').classList.toggle('active',k);scene.background=new THREE.Color(k?0x737373:0x9fdcff);honey.position.set(0,1,0);resetWorld();happiness=k?55:90;fun=k?35:85;family=k?20:100;msg.textContent=k?'This is a simple game representation of a more restricted kennel routine—not a statement about every kennel.':'Honey is home with her family. Explore and interact!';updateUI()}
+document.querySelector('#homeMode').onclick=()=>setMode(false);document.querySelector('#kennelMode').onclick=()=>setMode(true);updateUI();
+function resize(){const r=canvas.parentElement.getBoundingClientRect();renderer.setSize(r.width,r.height,false);camera.aspect=r.width/r.height;camera.updateProjectionMatrix()}addEventListener('resize',resize);resize();
+function loop(){requestAnimationFrame(loop);const dt=Math.min(clock.getDelta(),.05);let dx=0,dz=0;if(keys.w)dz-=1;if(keys.s)dz+=1;if(keys.a)dx-=1;if(keys.d)dx+=1;if(dx||dz){const l=Math.hypot(dx,dz);dx/=l;dz/=l;honey.position.x+=dx*dt*4;honey.position.z+=dz*dt*4;honey.position.x=THREE.MathUtils.clamp(honey.position.x,-8,8);honey.position.z=THREE.MathUtils.clamp(honey.position.z,-7,7);honey.rotation.y=Math.atan2(dx,dz)}const target=honey.position.clone();camera.position.lerp(new THREE.Vector3(target.x+6,target.y+5,target.z+8),.08);camera.lookAt(target.x,target.y+.5,target.z);renderer.render(scene,camera)}loop();
