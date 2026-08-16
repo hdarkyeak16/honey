@@ -28,7 +28,18 @@ const fsBtn=document.querySelector('#fullscreenGame');fsBtn?.addEventListener('c
 function blocked(x,z){return obstacles.some(o=>Math.abs(x-o.x)<o.halfX&&Math.abs(z-o.z)<o.halfZ)}
 function resize(){const r=gameBox.getBoundingClientRect();renderer.setSize(r.width,r.height,false);camera.aspect=r.width/r.height;camera.updateProjectionMatrix()}addEventListener('resize',resize);resize();
 
-// IMPORTANT: movement is calculated from the camera's actual horizontal forward/right vectors.
-// W always means "where I am looking", S backwards, A left, D right.
-function moveHoney(dt){let forward=0,strafe=0;if(keys.w)forward+=1;if(keys.s)forward-=1;if(keys.a)strafe-=1;if(keys.d)strafe+=1;if(!forward&&!strafe)return;const dir=new THREE.Vector3();camera.getWorldDirection(dir);dir.y=0;dir.normalize();const right=new THREE.Vector3(-dir.z,0,dir.x);const movement=new THREE.Vector3().addScaledVector(dir,forward).addScaledVector(right,strafe);movement.normalize().multiplyScalar(dt*4);const nx=honey.position.x+movement.x,nz=honey.position.z+movement.z;if(!blocked(nx,honey.position.z))honey.position.x=THREE.MathUtils.clamp(nx,-8.4,8.4);if(!blocked(honey.position.x,nz))honey.position.z=THREE.MathUtils.clamp(nz,-7.7,7.7);honey.rotation.y=Math.atan2(movement.x,movement.z)}
-function loop(){requestAnimationFrame(loop);const dt=Math.min(clock.getDelta(),.05);moveHoney(dt);const target=honey.position.clone();const distance=7;const camX=target.x+Math.sin(yaw)*distance,camZ=target.z+Math.cos(yaw)*distance,camY=target.y+3.3+pitch*3;camera.position.lerp(new THREE.Vector3(camX,camY,camZ),.12);camera.lookAt(target.x,target.y+1,target.z);renderer.render(scene,camera)}loop();
+// W = forward, S = backward, A = left, D = right, based directly on the camera view.
+function moveHoney(dt){let forward=0,strafe=0;if(keys.w)forward=1;if(keys.s)forward=-1;if(keys.a)strafe=-1;if(keys.d)strafe=1;if(!forward&&!strafe)return;
+  // Use yaw directly so the controls cannot inherit a reversed X/Z axis from the model.
+  // yaw=0 means the camera faces -Z, so W travels -Z.
+  const forwardX=-Math.sin(yaw),forwardZ=-Math.cos(yaw);
+  const rightX=Math.cos(yaw),rightZ=-Math.sin(yaw);
+  let mx=forwardX*forward+rightX*strafe;let mz=forwardZ*forward+rightZ*strafe;const len=Math.hypot(mx,mz);if(len){mx/=len;mz/=len;}
+  const speed=4;const nx=honey.position.x+mx*dt*speed,nz=honey.position.z+mz*dt*speed;
+  if(!blocked(nx,honey.position.z))honey.position.x=THREE.MathUtils.clamp(nx,-8.4,8.4);if(!blocked(honey.position.x,nz))honey.position.z=THREE.MathUtils.clamp(nz,-7.7,7.7);
+  // Honey's nose points along +X in the model, so rotate +X toward movement.
+  honey.rotation.y=Math.atan2(mz,mx);
+}
+function loop(){requestAnimationFrame(loop);const dt=Math.min(clock.getDelta(),.05);moveHoney(dt);const target=honey.position.clone();const distance=7;const camX=target.x+Math.sin(yaw)*distance,camZ=target.z+Math.cos(yaw)*distance,camY=target.y+3.3+pitch*3;camera.position.lerp(new THREE.Vector3(camX,camY,camZ),.12);camera.lookAt(target.x,target.y+1,target.z);renderer.render(scene,camera)}
+// Set an explicit starting camera so the first W press has a known forward direction.
+camera.position.set(0,4.0,7);camera.lookAt(0,1,0);loop();
